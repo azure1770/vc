@@ -1,20 +1,24 @@
 #!/bin/bash
 #Variablen
-#Farben
+#Colors
 RED='\e[31m'
 LRED='\e[91m'
 LGREEN='\e[92m'
 CYAN='\e[36m'
-RALL='\e[0;39;49m' #Remove all Farben u. Effecte
-#Datum
-DATUM=$(date +"%d.%m.%Y")
+RALL='\e[0;39;49m' #Remove all Colors u. Effecte
+#Date
+DATE=$(date +"%d.%m.%Y")
+
 #SSH
-sshuser=azureus
-sshhost=ssh.okko.one
-#sshhost=192.168.178.24
-#sshhost=192.168.1.99
-idpfad=/vc/.ssh/ID_ED25519_OSSH2_ssh.okko.one_azureus_np
-sshport=22170
-dateipfad="/media/raid1/Eigene\ Dateien/Ollicrypt/Sync"
-dateipfadbackup="/media/raid1/Eigene\ Dateien/Ollicrypt/Datum/$DATUM"
+sshuser=USER
+sshhost=IP/Domain
+idpath=/Path/to/your/ssh/key/file
+sshport=22
+remoteDir="/Remote/DIR/FOR/VeracryptContainer"
+remoteDirbackup="/Remote/DIR/FOR/VeracryptContainer"
 vcpw=`cat /bin/vcsec`
+
+#Veracrypt
+ContainerDir=/Path/to/your/Varacrypt/Containerfile - only Path no Filename!
+ContainerName=CONTAINERNAME
+ContainerMP=/Path/to/your/Mountpoint
