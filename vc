@@ -162,11 +162,11 @@ while [ ! -z "$1" ];do
         if [ $SUCCESS -eq 0 ]
         then
             echo ""
-            ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ ! -d '$remoteDirbackup' ]];
-            then mkdir '$remoteDirbackup'
+            ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ ! -d '$remoteDirbackup/$DATE' ]];
+            then mkdir '$remoteDirbackup/$DATE'
             fi'
-            sudo scp -P $sshport -i $idpfad $ContainerDir/$ContainerName $sshuser@$sshhost:"$remoteDirbackup"
-            ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ -f '$remoteDir/$ContainerName' ]] && [[ -f '$remoteDirbackup/$ContainerName' ]]
+            sudo scp -P $sshport -i $idpfad $ContainerDir/$ContainerName $sshuser@$sshhost:"$remoteDirbackup/$DATE"
+            ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ -f '$remoteDir/$ContainerName' ]] && [[ -f '$remoteDirbackup/$DATE/$ContainerName' ]]
             then echo -e "\n[\e[92m✓\e[39m] FILES exists - Backup successfully"
             else echo -e "[\e[91m✓\e[39m] FILES does not exist"
             fi'
