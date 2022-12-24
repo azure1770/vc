@@ -1,0 +1,224 @@
+#!/bin/bash
+source /bin/vcvars
+
+function show_usage() {
+    echo -e $LGREEN"\nVC Launcher"$RALL
+    printf "Usage: $0 [option]\n"
+    printf "\n"
+    printf "Options:\n"
+    printf " start     | Startet VC & KeepassXC\n"
+    printf " stop      | Stoppt VC & KeepassXC\n"
+    printf " restart   | Restart VC & KeepassXC\n"
+    printf "\n"
+    printf " startns   | Start ohne Sync\n"
+    printf " stopns    | Stop ohne Sync\n"
+    printf " restartns | Restart ohne Sync\n"
+    printf "\n"
+    printf " backup    | Backup Container\n"
+    printf "\n"
+    printf " -h|help   | Display this Helpscreen\n"
+return 0
+}
+
+if [[ $# -gt 2 ]] || [[ $# -eq 0 ]];then
+   #echo "Either 0 or more than 2 input arguments provided which is not supported"
+   show_usage
+   exit 1
+fi
+
+
+while [ ! -z "$1" ];do
+    case "$1" in
+        -h|help)
+        show_usage
+        ;;
+
+        start)
+        printf "Vcstart\n"
+        if [[ `sudo lsblk -o MOUNTPOINT | grep '/vc/container/Ollicrypt'` ]]
+        then
+            echo -e "\n[\e[36mii\e[39m] Container bereits eingebunden"
+        else
+	        #Check Host is up
+	        ping -c1 $sshhost -W0.1 1>/dev/null 2>/dev/null
+            SUCCESS=$?
+            if [ $SUCCESS -eq 0 ]
+            then
+                #DL Container
+                echo -e $LGREEN"\nLocal | Download (Sync)"$RALL
+                echo -e "[\e[92m✓\e[39m] $sshhost has replied"
+                sudo scp -P 22170 -i $idpfad $sshuser@$sshhost:"$dateipfad/Ollicrypt" /vc/containerfiles
+                [[ -f "/vc/containerfiles/Ollicrypt" ]] && echo -e "\n[\e[92m✓\e[39m] Sync Erfolgreich" || echo -e "[\e[91m✗\e[39m] Sync Fehlgeschlagen"
+            else
+                echo -e $LGREEN"Local | Download (Sync)\n"$RALL
+                echo -e "[\e[91m✗\e[39m] $sshhost didn't reply - NO SYNC"
+            fi
+            # Mount Container
+            #sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p 'Oll!ver08213Ollicrypt' --pim 0 -k '' --protect-hidden 'no' >/dev/null
+            sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
+            [[ `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]] && echo -e "\n[\e[92m✓\e[39m] Container eingebunden\e[39m"
+        fi
+        #Check Keepass bereits gestartet
+        if [[ `pidof keepassxc` ]]
+        then
+            echo -e "[\e[36mii\e[39m] KeePassXC bereits gestartet - F5 Aktualisieren!\e[39m"
+            exit
+        else
+            `keepassxc </dev/null &>/dev/null &`
+            [[ `pidof keepassxc` ]]
+            echo -e "[\e[92m✓\e[39m] KeePassXC gestartet\e[39m"
+        fi
+        MINUTEN=$(($SECONDS / 60))
+        SEC=$(($SECONDS - $MINUTEN * 60))
+        echo -e "[\e[91m$MINUTEN:$SEC\e[39m]"
+        ;;
+
+        stop)
+        printf "Vcstop\n"
+        #Check Prozess von Keepass bereits beendet ist.
+        if [[ ! `sudo pidof keepassxc` ]]
+        then
+            echo -e "\n[\e[36mii\e[39m] KeePassXC bereits beendet\e[39m"
+        else
+            #[[ `sudo pidof keepassxc` ]]
+            kill `pidof keepassxc`
+            [[ ! `pidof keepassxc` ]]
+            echo -e "\n[\e[92m✓\e[39m] KeePassXC beendet\e[39m"
+        fi
+        #Check Veracrypt Container bereits ausgeworfen ist, wenn ja exit.
+        if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+        then
+            echo -e "[\e[36mii\e[39m] Container bereits Ausgeworfen"
+            exit
+        else
+            veracrypt -d /vc/containerfiles/Ollicrypt
+            if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+            then
+                echo -e "[\e[92m✓\e[39m] Volume Dismounted\e[39m"
+            else
+                echo -e "[\e[91m✗\e[39m] Volume not dismounted - Exit"
+                exit
+            fi
+        # Check Host is up for upload
+        ping -c1 $sshhost -W0.1 1>/dev/null 2>/dev/null
+        SUCCESS=$?
+	        if [ $SUCCESS -eq 0 ]
+	        then
+                #Upload
+	            echo -e $LGREEN"\nServer | Hochladen (Sync)"$RALL
+	            echo -e "[\e[92m✓\e[39m] $sshhost has replied"
+	            sudo scp -P 22170 -i $idpfad /vc/containerfiles/Ollicrypt $sshuser@$sshhost:"$dateipfad"
+        	    ssh -q $sshuser@$sshhost -p 22170 -i $idpfad [[ -f "$dateipfad/Ollicrypt" ]] && echo -e "\n[\e[92m✓\e[39m] Sync Erfolgreich" || echo -e "[\e[91m✗\e[39m] Sync Fehlgeschlagen"
+	        else
+	            echo -e $LGREEN"\nServer | Hochladen (Sync)\n"$RALL
+	            echo -e "[\e[91m✗\e[39m] $sshhost didn't reply - NO SYNC"
+	        fi
+        fi
+        MINUTEN=$(($SECONDS / 60))
+        SEC=$(($SECONDS - $MINUTEN * 60))
+        echo -e "[\e[91m$MINUTEN:$SEC\e[39m]"
+        ;;
+
+        startns)
+        printf "Vcstart No Sync\n"
+        if [[ `sudo lsblk -o MOUNTPOINT | grep '/vc/container/Ollicrypt'` ]]
+        then
+            echo -e "\n[\e[36mii\e[39m] Container bereits eingebunden"
+        else
+            # Mount Container
+            #sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p 'Oll!ver08213Ollicrypt' --pim 0 -k '' --protect-hidden 'no' >/dev/null
+            sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
+            [[ `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]] && echo -e "\n[\e[92m✓\e[39m] Container eingebunden\e[39m"
+        fi
+        #Check Keepass bereits gestartet
+        if [[ `pidof keepassxc` ]]
+        then
+            echo -e "[\e[36mii\e[39m] KeePassXC bereits gestartet - F5 Aktualisieren!\e[39m"
+            exit
+        else
+            `keepassxc </dev/null &>/dev/null &`
+            [[ `pidof keepassxc` ]]
+            echo -e "[\e[92m✓\e[39m] KeePassXC gestartet\e[39m"
+        fi
+        MINUTEN=$(($SECONDS / 60))
+        SEC=$(($SECONDS - $MINUTEN * 60))
+        echo -e "[\e[91m$MINUTEN:$SEC\e[39m]"
+        ;;
+
+        stopns)
+        printf "Vcstop No Sync\n"
+        #Check Prozess von Keepass bereits beendet ist.
+        if [[ ! `sudo pidof keepassxc` ]]
+        then
+            echo -e "\n[\e[36mii\e[39m] KeePassXC bereits beendet\e[39m"
+        else
+            #[[ `sudo pidof keepassxc` ]]
+            kill `pidof keepassxc`
+            [[ ! `pidof keepassxc` ]]
+            echo -e "\n[\e[92m✓\e[39m] KeePassXC beendet\e[39m"
+        fi
+        #Check Veracrypt Container bereits ausgeworfen ist, wenn ja exit.
+        if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+        then
+            echo -e "[\e[36mii\e[39m] Container bereits Ausgeworfen"
+            exit
+        else
+            veracrypt -d /vc/containerfiles/Ollicrypt
+            if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+            then
+                echo -e "[\e[92m✓\e[39m] Volume Dismounted\e[39m"
+            else
+                echo -e "[\e[91m✗\e[39m] Volume not dismounted - Exit"
+                exit
+            fi
+        fi
+        MINUTEN=$(($SECONDS / 60))
+        SEC=$(($SECONDS - $MINUTEN * 60))
+        echo -e "[\e[91m$MINUTEN:$SEC\e[39m]"
+        ;;
+
+        backup)
+        echo "Vcbackup"
+        ping -c1 $sshhost -W0.1 1>/dev/null 2>/dev/null
+        SUCCESS=$?
+        if [ $SUCCESS -eq 0 ]
+        then
+            echo ""
+            ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ ! -d "'/media/raid1/Eigene Dateien/Ollicrypt/Datum/$DATUM'" ]];
+            then mkdir "'/media/raid1/Eigene\ Dateien/Ollicrypt/Datum/$DATUM'"
+            fi'
+            #sudo sftp -q -P $sshport -i $idpfad $sshuser@$sshhost << EOF
+            #put /vc/containerfiles/Ollicrypt /media/raid1/Eigene\ Dateien/Ollicrypt/Datum/$DATUM
+            #put /vc/containerfiles/Ollicrypt /media/raid1/Eigene\ Dateien/Ollicrypt/Sync
+            #EOF
+            sudo sftp -q -P $sshport -i $idpfad $sshuser@$sshhost <<EOF
+            put /vc/containerfiles/Ollicrypt /media/raid1/Eigene\ Dateien/Ollicrypt/Datum/$DATUM
+EOF
+            ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ -f "/media/raid1/Eigene Dateien/Ollicrypt/Sync/Ollicrypt" ]] && [[ -f "'/media/raid1/Eigene\ Dateien/Ollicrypt/Datum/$DATUM/Ollicrypt'" ]]
+            then echo -e "\n[\e[92m✓\e[39m] FILES exists - Backup successful"
+            else echo -e "[\e[91m✓\e[39m] FILES does not exist"
+            fi'
+        else
+	        echo -e $LRED"\nAborted! $sshhost didn't reply - NO SYNC"$RALL
+            exit
+        fi
+        ;;
+
+        restart)
+        $0 stop
+        printf "\n"
+        $0 start
+        ;;
+
+        restartns)
+        $0 stopns
+        printf "\n"
+        $0 startns
+        ;;
+        *)
+        echo "Incorrect input provided"
+        show_usage
+    esac
+shift
+done
+
