@@ -1,6 +1,6 @@
 #!/bin/bash
 source /bin/vcvars
-
+clear
 function show_usage() {
     echo -e $LGREEN"\nVC Launcher"$RALL
     printf "Usage: $0 [option]\n"
@@ -26,7 +26,6 @@ if [[ $# -gt 2 ]] || [[ $# -eq 0 ]];then
    exit 1
 fi
 
-
 while [ ! -z "$1" ];do
     case "$1" in
         -h|help)
@@ -34,7 +33,8 @@ while [ ! -z "$1" ];do
         ;;
 
         start)
-        printf "Vcstart\n"
+        #printf "Vcstart\n"
+        echo -e $LGREEN"VC Start"$RALL
         if [[ `sudo lsblk -o MOUNTPOINT | grep '/vc/container/Ollicrypt'` ]]
         then
             echo -e "\n[\e[36mii\e[39m] Container bereits eingebunden"
@@ -74,7 +74,7 @@ while [ ! -z "$1" ];do
         ;;
 
         stop)
-        printf "Vcstop\n"
+        echo -e $LGREEN"VC Stop"$RALL
         #Check Prozess von Keepass bereits beendet ist.
         if [[ ! `sudo pidof keepassxc` ]]
         then
@@ -120,7 +120,7 @@ while [ ! -z "$1" ];do
         ;;
 
         startns)
-        printf "Vcstart No Sync\n"
+        echo -e $LGREEN"VC Start"$RALL" - "$LRED"No Sync"$RALL
         if [[ `sudo lsblk -o MOUNTPOINT | grep '/vc/container/Ollicrypt'` ]]
         then
             echo -e "\n[\e[36mii\e[39m] Container bereits eingebunden"
@@ -146,7 +146,7 @@ while [ ! -z "$1" ];do
         ;;
 
         stopns)
-        printf "Vcstop No Sync\n"
+        echo -e $LGREEN"VC Stop"$RALL" - "$LRED"No Sync"$RALL
         #Check Prozess von Keepass bereits beendet ist.
         if [[ ! `sudo pidof keepassxc` ]]
         then
@@ -178,7 +178,7 @@ while [ ! -z "$1" ];do
         ;;
 
         backup)
-        echo "Vcbackup"
+        echo -e $LGREEN"VC Backup"$RALL
         ping -c1 $sshhost -W0.1 1>/dev/null 2>/dev/null
         SUCCESS=$?
         if [ $SUCCESS -eq 0 ]
@@ -191,9 +191,7 @@ while [ ! -z "$1" ];do
             #put /vc/containerfiles/Ollicrypt /media/raid1/Eigene\ Dateien/Ollicrypt/Datum/$DATUM
             #put /vc/containerfiles/Ollicrypt /media/raid1/Eigene\ Dateien/Ollicrypt/Sync
             #EOF
-            sudo sftp -q -P $sshport -i $idpfad $sshuser@$sshhost <<EOF
-            put /vc/containerfiles/Ollicrypt /media/raid1/Eigene\ Dateien/Ollicrypt/Datum/$DATUM
-EOF
+            sudo scp -P 22170 -i $idpfad /vc/containerfiles/Ollicrypt $sshuser@$sshhost:"$dateipfadbackup"
             ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ -f "/media/raid1/Eigene Dateien/Ollicrypt/Sync/Ollicrypt" ]] && [[ -f "'/media/raid1/Eigene\ Dateien/Ollicrypt/Datum/$DATUM/Ollicrypt'" ]]
             then echo -e "\n[\e[92m✓\e[39m] FILES exists - Backup successful"
             else echo -e "[\e[91m✓\e[39m] FILES does not exist"
@@ -205,16 +203,107 @@ EOF
         ;;
 
         restart)
-        $0 stop
-        printf "\n"
-        $0 start
+        echo -e $LGREEN"VC Restart"$RALL
+        #stop
+        if [[ ! `sudo pidof keepassxc` ]]
+        then
+            :
+        else
+            kill `pidof keepassxc`
+            [[ ! `pidof keepassxc` ]]
+        fi
+        if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+        then
+            exit
+        else
+            veracrypt -d /vc/containerfiles/Ollicrypt
+            if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+            then
+                :
+            else
+                echo -e "[\e[91m✗\e[39m] Volume not dismounted - Exit"
+                exit
+            fi
+        fi
+        #start
+        if [[ `sudo lsblk -o MOUNTPOINT | grep '/vc/container/Ollicrypt'` ]]
+        then
+            echo -e "\n[\e[36mii\e[39m] Container bereits eingebunden"
+        else
+	        ping -c1 $sshhost -W0.1 1>/dev/null 2>/dev/null
+            SUCCESS=$?
+            if [ $SUCCESS -eq 0 ]
+            then
+                sudo scp -P 22170 -i $idpfad $sshuser@$sshhost:"$dateipfad/Ollicrypt" /vc/containerfiles >/dev/null
+            else
+                echo -e $LGREEN"Local | Download (Sync)\n"$RALL
+                echo -e "[\e[91m✗\e[39m] $sshhost didn't reply - NO SYNC"
+            fi
+            sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
+        fi
+        if [[ `pidof keepassxc` ]]
+        then
+            echo -e "[\e[36mii\e[39m] KeePassXC bereits gestartet - F5 Aktualisieren!\e[39m"
+            exit
+        else
+            `keepassxc </dev/null &>/dev/null &`
+            [[ `pidof keepassxc` ]]
+        fi
+        echo -e "\n[\e[92m✓\e[39m] VC Restart erfolgreich\e[39m"
         ;;
 
         restartns)
-        $0 stopns
-        printf "\n"
-        $0 startns
+        echo -e $LGREEN"VC Restart"$RALL" - "$LRED"No Sync"$RALL
+        if [[ ! `sudo pidof keepassxc` ]]
+        then
+            echo -e "\n[\e[36mii\e[39m] KeePassXC bereits beendet\e[39m"
+        else
+            kill `pidof keepassxc`
+            [[ ! `pidof keepassxc` ]]
+            echo -e "\n[\e[92m✓\e[39m] KeePassXC beendet\e[39m"
+        fi
+        if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+        then
+            echo -e "[\e[36mii\e[39m] Container bereits Ausgeworfen"
+            exit
+        else
+            veracrypt -d /vc/containerfiles/Ollicrypt
+            if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+            then
+                echo -e "[\e[92m✓\e[39m] Volume Dismounted\e[39m"
+            else
+                echo -e "[\e[91m✗\e[39m] Volume not dismounted - Exit"
+                exit
+            fi
+        fi
+        if [[ `sudo lsblk -o MOUNTPOINT | grep '/vc/container/Ollicrypt'` ]]
+        then
+            echo -e "\n[\e[36mii\e[39m] Container bereits eingebunden"
+        else
+            sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
+            [[ `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]] && echo -e "[\e[92m✓\e[39m] Container eingebunden\e[39m"
+        fi
+        if [[ `pidof keepassxc` ]]
+        then
+            echo -e "[\e[36mii\e[39m] KeePassXC bereits gestartet - F5 Aktualisieren!\e[39m"
+            exit
+        else
+            `keepassxc </dev/null &>/dev/null &`
+            [[ `pidof keepassxc` ]]
+            echo -e "[\e[92m✓\e[39m] KeePassXC gestartet\e[39m"
+        fi
+        clear 
+        echo -e $LGREEN"VC Restart"$RALL" - "$LRED"No Sync"$RALL"\n\n[\e[92m✓\e[39m] VC Restart erfolgreich\e[39m"
+        MINUTEN=$(($SECONDS / 60))
+        SEC=$(($SECONDS - $MINUTEN * 60))
+        echo -e "[\e[91m$MINUTEN:$SEC\e[39m]"
         ;;
+
+        #restartns1)
+        #$0 stopns
+        #printf "\n"
+        #$0 startns
+        #;;
         *)
         echo "Incorrect input provided"
         show_usage
