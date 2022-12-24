@@ -35,7 +35,7 @@ while [ ! -z "$1" ];do
         echo -e $LGREEN"VC Start"$RALL
         if [[ `sudo lsblk -o MOUNTPOINT | grep $ContainerMP/$ContainerName` ]]
         then
-            echo -e "\n[\e[36mii\e[39m] Container already mounted!!!"
+            echo -e "\n[\e[36mii\e[39m] Container already mounted!"
         else
 	        #Check Host is up
 	        ping -c1 $sshhost -W0.1 1>/dev/null 2>/dev/null
@@ -46,14 +46,14 @@ while [ ! -z "$1" ];do
                 echo -e $LGREEN"\nLocal | Download (Sync)"$RALL
                 echo -e "[\e[92m✓\e[39m] $sshhost has replied"
                 sudo scp -P $sshport -i $idpfad $sshuser@$sshhost:"$remoteDir/$ContainerName" $ContainerDir
-                [[ -f "$ContainerDir/$ContainerName" ]] && echo -e "\n[\e[92m✓\e[39m] Sync successfully" || echo -e "[\e[91m✗\e[39m] Sync Error"
+                [[ -f "$ContainerDir/$ContainerName" ]] && echo -e "\n[\e[92m✓\e[39m] Sync successfully!" || echo -e "[\e[91m✗\e[39m] Sync Error"
             else
                 echo -e $LGREEN"Local | Download (Sync)\n"$RALL
                 echo -e "[\e[91m✗\e[39m] $sshhost didn't reply - NO SYNC"
             fi
             # Mount Container
             sudo veracrypt --mount $ContainerDir/$ContainerName $ContainerMP/$ContainerName -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
-            [[ `lsblk -o MOUNTPOINT | grep $ContainerMP/$ContainerName` ]] && echo -e "\n[\e[92m✓\e[39m] Container mounted!!.\e[39m"
+            [[ `lsblk -o MOUNTPOINT | grep $ContainerMP/$ContainerName` ]] && echo -e "\n[\e[92m✓\e[39m] Container mounted!\e[39m"
         fi
         #Check if Keepass is already started
         if [[ `pidof keepassxc` ]]
@@ -63,7 +63,7 @@ while [ ! -z "$1" ];do
         else
             `keepassxc </dev/null &>/dev/null &`
             [[ `pidof keepassxc` ]]
-            echo -e "[\e[92m✓\e[39m] KeePassXC started\e[39m"
+            echo -e "[\e[92m✓\e[39m] KeePassXC started!\e[39m"
         fi
         ;;
 
@@ -125,7 +125,7 @@ while [ ! -z "$1" ];do
         else
             `keepassxc </dev/null &>/dev/null &`
             [[ `pidof keepassxc` ]]
-            echo -e "[\e[92m✓\e[39m] KeePassXC gestartet\e[39m"
+            echo -e "[\e[92m✓\e[39m] KeePassXC started!\e[39m"
         fi
         ;;
 
@@ -223,7 +223,7 @@ while [ ! -z "$1" ];do
             [[ `pidof keepassxc` ]]
         fi
         sleep 1
-        echo -e "\n[\e[92m✓\e[39m] VC Restart successfully\e[39m"
+        echo -e "\n[\e[92m✓\e[39m] VC Restart successfully!\e[39m"
         ;;
 
         restartns)
@@ -263,7 +263,7 @@ while [ ! -z "$1" ];do
         else
             `keepassxc </dev/null &>/dev/null &`
             [[ `pidof keepassxc` ]]
-            echo -e "[\e[92m✓\e[39m] KeePassXC gestartet\e[39m"
+            echo -e "[\e[92m✓\e[39m] KeePassXC stated!\e[39m"
         fi
         clear 
         echo -e $LGREEN"VC Restart"$RALL" - "$LRED"No Sync"$RALL"\n\n[\e[92m✓\e[39m] VC Restart successfully\e[39m"
