@@ -1,6 +1,6 @@
 # VC
 
-VC is a Script to a Mount VeracryptContainer and open a KeepassXc Database from inside of the Container
+VC is a Script to a Mount VeracryptContainer and open a KeepassXc Database from inside of the Container - For Linux only!
 
 ## Installation
 
