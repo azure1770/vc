@@ -6,13 +6,13 @@ function show_usage() {
     printf "Usage: $0 [option]\n"
     printf "\n"
     printf "Options:\n"
-    printf " start     | Startet VC & KeepassXC\n"
-    printf " stop      | Stoppt VC & KeepassXC\n"
+    printf " start     | Start VC & KeepassXC\n"
+    printf " stop      | Stop VC & KeepassXC\n"
     printf " restart   | Restart VC & KeepassXC\n"
     printf "\n"
-    printf " startns   | Start ohne Sync\n"
-    printf " stopns    | Stop ohne Sync\n"
-    printf " restartns | Restart ohne Sync\n"
+    printf " startns   | Start without Sync\n"
+    printf " stopns    | Stop without Sync\n"
+    printf " restartns | Restart without Sync\n"
     printf "\n"
     printf " backup    | Backup Container\n"
     printf "\n"
@@ -21,7 +21,6 @@ return 0
 }
 
 if [[ $# -gt 2 ]] || [[ $# -eq 0 ]];then
-   #echo "Either 0 or more than 2 input arguments provided which is not supported"
    show_usage
    exit 1
 fi
@@ -33,11 +32,10 @@ while [ ! -z "$1" ];do
         ;;
 
         start)
-        #printf "Vcstart\n"
         echo -e $LGREEN"VC Start"$RALL
-        if [[ `sudo lsblk -o MOUNTPOINT | grep '/vc/container/Ollicrypt'` ]]
+        if [[ `sudo lsblk -o MOUNTPOINT | grep $ContainerMP/$ContainerName` ]]
         then
-            echo -e "\n[\e[36mii\e[39m] Container bereits eingebunden"
+            echo -e "\n[\e[36mii\e[39m] Container already mounted!!!"
         else
 	        #Check Host is up
 	        ping -c1 $sshhost -W0.1 1>/dev/null 2>/dev/null
@@ -47,56 +45,52 @@ while [ ! -z "$1" ];do
                 #DL Container
                 echo -e $LGREEN"\nLocal | Download (Sync)"$RALL
                 echo -e "[\e[92m✓\e[39m] $sshhost has replied"
-                sudo scp -P 22170 -i $idpfad $sshuser@$sshhost:"$dateipfad/Ollicrypt" /vc/containerfiles
-                [[ -f "/vc/containerfiles/Ollicrypt" ]] && echo -e "\n[\e[92m✓\e[39m] Sync Erfolgreich" || echo -e "[\e[91m✗\e[39m] Sync Fehlgeschlagen"
+                sudo scp -P $sshport -i $idpfad $sshuser@$sshhost:"$remoteDir/$ContainerName" $ContainerDir
+                [[ -f "$ContainerDir/$ContainerName" ]] && echo -e "\n[\e[92m✓\e[39m] Sync successfully" || echo -e "[\e[91m✗\e[39m] Sync Error"
             else
                 echo -e $LGREEN"Local | Download (Sync)\n"$RALL
                 echo -e "[\e[91m✗\e[39m] $sshhost didn't reply - NO SYNC"
             fi
             # Mount Container
-            #sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p 'Oll!ver08213Ollicrypt' --pim 0 -k '' --protect-hidden 'no' >/dev/null
-            sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
-            [[ `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]] && echo -e "\n[\e[92m✓\e[39m] Container eingebunden\e[39m"
+            sudo veracrypt --mount $ContainerDir/$ContainerName $ContainerMP/$ContainerName -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
+            [[ `lsblk -o MOUNTPOINT | grep $ContainerMP/$ContainerName` ]] && echo -e "\n[\e[92m✓\e[39m] Container mounted!!.\e[39m"
         fi
-        #Check Keepass bereits gestartet
+        #Check if Keepass is already started
         if [[ `pidof keepassxc` ]]
         then
-            echo -e "[\e[36mii\e[39m] KeePassXC bereits gestartet - F5 Aktualisieren!\e[39m"
+            echo -e "[\e[36mii\e[39m] KeePassXC already started - Press F5 to Reload!\e[39m"
             exit
         else
             `keepassxc </dev/null &>/dev/null &`
             [[ `pidof keepassxc` ]]
-            echo -e "[\e[92m✓\e[39m] KeePassXC gestartet\e[39m"
+            echo -e "[\e[92m✓\e[39m] KeePassXC started\e[39m"
         fi
-        MINUTEN=$(($SECONDS / 60))
-        SEC=$(($SECONDS - $MINUTEN * 60))
-        echo -e "[\e[91m$MINUTEN:$SEC\e[39m]"
         ;;
 
         stop)
         echo -e $LGREEN"VC Stop"$RALL
-        #Check Prozess von Keepass bereits beendet ist.
+        #Check Keepass is closed or not.
         if [[ ! `sudo pidof keepassxc` ]]
         then
-            echo -e "\n[\e[36mii\e[39m] KeePassXC bereits beendet\e[39m"
+            echo -e "\n[\e[36mii\e[39m] KeePassXC already closed!\e[39m"
         else
             #[[ `sudo pidof keepassxc` ]]
             kill `pidof keepassxc`
             [[ ! `pidof keepassxc` ]]
-            echo -e "\n[\e[92m✓\e[39m] KeePassXC beendet\e[39m"
+            echo -e "\n[\e[92m✓\e[39m] KeePassXC terminated!\e[39m"
         fi
-        #Check Veracrypt Container bereits ausgeworfen ist, wenn ja exit.
-        if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+        #Check Veracrypt Container dismounted, if yes exit.
+        if [[ ! `lsblk -o MOUNTPOINT | grep "$ContainerMP/$ContainerName"` ]]
         then
-            echo -e "[\e[36mii\e[39m] Container bereits Ausgeworfen"
+            echo -e "[\e[36mii\e[39m] Container already dismounted!"
             exit
         else
-            veracrypt -d /vc/containerfiles/Ollicrypt
-            if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+            veracrypt -d $ContainerMP/$ContainerName
+            if [[ ! `lsblk -o MOUNTPOINT | grep "$ContainerMP/$ContainerName"` ]]
             then
-                echo -e "[\e[92m✓\e[39m] Volume Dismounted\e[39m"
+                echo -e "[\e[92m✓\e[39m] Volume Dismounted!\e[39m"
             else
-                echo -e "[\e[91m✗\e[39m] Volume not dismounted - Exit"
+                echo -e "[\e[91m✗\e[39m] Volume not dismounted! - Exit"
                 exit
             fi
         # Check Host is up for upload
@@ -105,76 +99,60 @@ while [ ! -z "$1" ];do
 	        if [ $SUCCESS -eq 0 ]
 	        then
                 #Upload
-	            echo -e $LGREEN"\nServer | Hochladen (Sync)"$RALL
+	            echo -e $LGREEN"\nServer | Upload (Sync)"$RALL
 	            echo -e "[\e[92m✓\e[39m] $sshhost has replied"
-	            sudo scp -P 22170 -i $idpfad /vc/containerfiles/Ollicrypt $sshuser@$sshhost:"$dateipfad"
-        	    ssh -q $sshuser@$sshhost -p 22170 -i $idpfad [[ -f "$dateipfad/Ollicrypt" ]] && echo -e "\n[\e[92m✓\e[39m] Sync Erfolgreich" || echo -e "[\e[91m✗\e[39m] Sync Fehlgeschlagen"
+	            sudo scp -P $sshport -i $idpfad $ContainerDir/$ContainerName $sshuser@$sshhost:"$remoteDir"
+        	    ssh -q $sshuser@$sshhost -p $sshport -i $idpfad [[ -f "$remoteDir/$ContainerName" ]] && echo -e "\n[\e[92m✓\e[39m] Sync successfully" || echo -e "[\e[91m✗\e[39m] Sync Error"
 	        else
-	            echo -e $LGREEN"\nServer | Hochladen (Sync)\n"$RALL
+	            echo -e $LGREEN"\nServer | Upload (Sync)\n"$RALL
 	            echo -e "[\e[91m✗\e[39m] $sshhost didn't reply - NO SYNC"
 	        fi
         fi
-        MINUTEN=$(($SECONDS / 60))
-        SEC=$(($SECONDS - $MINUTEN * 60))
-        echo -e "[\e[91m$MINUTEN:$SEC\e[39m]"
         ;;
 
         startns)
         echo -e $LGREEN"VC Start"$RALL" - "$LRED"No Sync"$RALL
-        if [[ `sudo lsblk -o MOUNTPOINT | grep '/vc/container/Ollicrypt'` ]]
+        if [[ `sudo lsblk -o MOUNTPOINT | grep $ContainerMP/$ContainerName` ]]
         then
-            echo -e "\n[\e[36mii\e[39m] Container bereits eingebunden"
+            echo -e "\n[\e[36mii\e[39m] Container already mounted!."
         else
-            # Mount Container
-            #sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p 'Oll!ver08213Ollicrypt' --pim 0 -k '' --protect-hidden 'no' >/dev/null
-            sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
-            [[ `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]] && echo -e "\n[\e[92m✓\e[39m] Container eingebunden\e[39m"
+            sudo veracrypt --mount "$ContainerDir/$ContainerName" "$ContainerMP/$ContainerName" -p "$vcpw" --pim 0 -k '' --protect-hidden 'no' >/dev/null
+            [[ `lsblk -o MOUNTPOINT | grep $ContainerMP/$ContainerName` ]] && echo -e "\n[\e[92m✓\e[39m] Container mounted!!\e[39m"
         fi
-        #Check Keepass bereits gestartet
         if [[ `pidof keepassxc` ]]
         then
-            echo -e "[\e[36mii\e[39m] KeePassXC bereits gestartet - F5 Aktualisieren!\e[39m"
-            exit
+            echo -e "[\e[36mii\e[39m] KeePassXC already started - Press F5 to Reload!\e[39m"
         else
             `keepassxc </dev/null &>/dev/null &`
             [[ `pidof keepassxc` ]]
             echo -e "[\e[92m✓\e[39m] KeePassXC gestartet\e[39m"
         fi
-        MINUTEN=$(($SECONDS / 60))
-        SEC=$(($SECONDS - $MINUTEN * 60))
-        echo -e "[\e[91m$MINUTEN:$SEC\e[39m]"
         ;;
 
         stopns)
         echo -e $LGREEN"VC Stop"$RALL" - "$LRED"No Sync"$RALL
-        #Check Prozess von Keepass bereits beendet ist.
         if [[ ! `sudo pidof keepassxc` ]]
         then
-            echo -e "\n[\e[36mii\e[39m] KeePassXC bereits beendet\e[39m"
+            echo -e "\n[\e[36mii\e[39m] KeePassXC already closed!\e[39m"
         else
-            #[[ `sudo pidof keepassxc` ]]
             kill `pidof keepassxc`
             [[ ! `pidof keepassxc` ]]
-            echo -e "\n[\e[92m✓\e[39m] KeePassXC beendet\e[39m"
+            echo -e "\n[\e[92m✓\e[39m] KeePassXC terminated!\e[39m"
         fi
-        #Check Veracrypt Container bereits ausgeworfen ist, wenn ja exit.
         if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
         then
-            echo -e "[\e[36mii\e[39m] Container bereits Ausgeworfen"
+            echo -e "[\e[36mii\e[39m] Container already dismounted!"
             exit
         else
-            veracrypt -d /vc/containerfiles/Ollicrypt
-            if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+            veracrypt -d $ContainerMP/$ContainerName
+            if [[ ! `lsblk -o MOUNTPOINT | grep "$ContainerMP/$ContainerName"` ]]
             then
-                echo -e "[\e[92m✓\e[39m] Volume Dismounted\e[39m"
+                echo -e "[\e[92m✓\e[39m] Volume Dismounted!!\e[39m"
             else
-                echo -e "[\e[91m✗\e[39m] Volume not dismounted - Exit"
+                echo -e "[\e[91m✗\e[39m] Volume not dismounted!! - Exit"
                 exit
             fi
         fi
-        MINUTEN=$(($SECONDS / 60))
-        SEC=$(($SECONDS - $MINUTEN * 60))
-        echo -e "[\e[91m$MINUTEN:$SEC\e[39m]"
         ;;
 
         backup)
@@ -184,16 +162,12 @@ while [ ! -z "$1" ];do
         if [ $SUCCESS -eq 0 ]
         then
             echo ""
-            ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ ! -d "'/media/raid1/Eigene Dateien/Ollicrypt/Datum/$DATUM'" ]];
-            then mkdir "'/media/raid1/Eigene\ Dateien/Ollicrypt/Datum/$DATUM'"
+            ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ ! -d '$remoteDirbackup' ]];
+            then mkdir '$remoteDirbackup'
             fi'
-            #sudo sftp -q -P $sshport -i $idpfad $sshuser@$sshhost << EOF
-            #put /vc/containerfiles/Ollicrypt /media/raid1/Eigene\ Dateien/Ollicrypt/Datum/$DATUM
-            #put /vc/containerfiles/Ollicrypt /media/raid1/Eigene\ Dateien/Ollicrypt/Sync
-            #EOF
-            sudo scp -P 22170 -i $idpfad /vc/containerfiles/Ollicrypt $sshuser@$sshhost:"$dateipfadbackup"
-            ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ -f "/media/raid1/Eigene Dateien/Ollicrypt/Sync/Ollicrypt" ]] && [[ -f "'/media/raid1/Eigene\ Dateien/Ollicrypt/Datum/$DATUM/Ollicrypt'" ]]
-            then echo -e "\n[\e[92m✓\e[39m] FILES exists - Backup successful"
+            sudo scp -P $sshport -i $idpfad $ContainerDir/$ContainerName $sshuser@$sshhost:"$remoteDirbackup"
+            ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ -f '$remoteDir/$ContainerName' ]] && [[ -f '$remoteDirbackup/$ContainerName' ]]
+            then echo -e "\n[\e[92m✓\e[39m] FILES exists - Backup successfully"
             else echo -e "[\e[91m✓\e[39m] FILES does not exist"
             fi'
         else
@@ -212,98 +186,92 @@ while [ ! -z "$1" ];do
             kill `pidof keepassxc`
             [[ ! `pidof keepassxc` ]]
         fi
-        if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+        if [[ ! `lsblk -o MOUNTPOINT | grep "$ContainerMP/$ContainerName"` ]]
         then
-            exit
+            :
         else
-            veracrypt -d /vc/containerfiles/Ollicrypt
-            if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+            veracrypt -d $ContainerMP/$ContainerName
+            if [[ ! `lsblk -o MOUNTPOINT | grep "$ContainerMP/$ContainerName"` ]]
             then
                 :
             else
-                echo -e "[\e[91m✗\e[39m] Volume not dismounted - Exit"
+                echo -e "[\e[91m✗\e[39m] Volume not dismounted!! - Exit"
                 exit
             fi
         fi
         #start
-        if [[ `sudo lsblk -o MOUNTPOINT | grep '/vc/container/Ollicrypt'` ]]
+        if [[ `sudo lsblk -o MOUNTPOINT | grep '$ContainerMP/$ContainerName'` ]]
         then
-            echo -e "\n[\e[36mii\e[39m] Container bereits eingebunden"
+            echo -e "\n[\e[36mii\e[39m] Container already mounted!!."
         else
 	        ping -c1 $sshhost -W0.1 1>/dev/null 2>/dev/null
             SUCCESS=$?
             if [ $SUCCESS -eq 0 ]
             then
-                sudo scp -P 22170 -i $idpfad $sshuser@$sshhost:"$dateipfad/Ollicrypt" /vc/containerfiles >/dev/null
+                sudo scp -P $sshport -i $idpfad $sshuser@$sshhost:"$remoteDir/$ContainerName" $ContainerDir >/dev/null
             else
                 echo -e $LGREEN"Local | Download (Sync)\n"$RALL
                 echo -e "[\e[91m✗\e[39m] $sshhost didn't reply - NO SYNC"
             fi
-            sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
+            sudo veracrypt --mount $ContainerDir/$ContainerName $ContainerMP/$ContainerName -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
         fi
         if [[ `pidof keepassxc` ]]
         then
-            echo -e "[\e[36mii\e[39m] KeePassXC bereits gestartet - F5 Aktualisieren!\e[39m"
-            exit
+            echo -e "[\e[36mii\e[39m] KeePassXC already started - Press F5 to Reload!\e[39m"
         else
             `keepassxc </dev/null &>/dev/null &`
             [[ `pidof keepassxc` ]]
         fi
-        echo -e "\n[\e[92m✓\e[39m] VC Restart erfolgreich\e[39m"
+        sleep 1
+        echo -e "\n[\e[92m✓\e[39m] VC Restart successfully\e[39m"
         ;;
 
         restartns)
         echo -e $LGREEN"VC Restart"$RALL" - "$LRED"No Sync"$RALL
         if [[ ! `sudo pidof keepassxc` ]]
         then
-            echo -e "\n[\e[36mii\e[39m] KeePassXC bereits beendet\e[39m"
+            echo -e "\n[\e[36mii\e[39m] KeePassXC already closed!\e[39m"
         else
             kill `pidof keepassxc`
             [[ ! `pidof keepassxc` ]]
-            echo -e "\n[\e[92m✓\e[39m] KeePassXC beendet\e[39m"
+            echo -e "\n[\e[92m✓\e[39m] KeePassXC terminated!\e[39m"
         fi
-        if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+        if [[ ! `lsblk -o MOUNTPOINT | grep "$ContainerMP/$ContainerName"` ]]
         then
-            echo -e "[\e[36mii\e[39m] Container bereits Ausgeworfen"
+            echo -e "[\e[36mii\e[39m] Container already dismounted!"
             exit
         else
-            veracrypt -d /vc/containerfiles/Ollicrypt
-            if [[ ! `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]]
+            veracrypt -d $ContainerMP/$ContainerName
+            if [[ ! `lsblk -o MOUNTPOINT | grep "$ContainerMP/$ContainerName"` ]]
             then
-                echo -e "[\e[92m✓\e[39m] Volume Dismounted\e[39m"
+                :
             else
-                echo -e "[\e[91m✗\e[39m] Volume not dismounted - Exit"
+                echo -e "[\e[91m✗\e[39m] Volume not dismounted!! - Exit"
                 exit
             fi
         fi
-        if [[ `sudo lsblk -o MOUNTPOINT | grep '/vc/container/Ollicrypt'` ]]
+        if [[ `sudo lsblk -o MOUNTPOINT | grep "$ContainerMP/$ContainerName"` ]]
         then
-            echo -e "\n[\e[36mii\e[39m] Container bereits eingebunden"
+            echo -e "\n[\e[36mii\e[39m] Container already mounted!!."
         else
-            sudo veracrypt --mount /vc/containerfiles/Ollicrypt /vc/container/Ollicrypt -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
-            [[ `lsblk -o MOUNTPOINT | grep "/vc/container/Ollicrypt"` ]] && echo -e "[\e[92m✓\e[39m] Container eingebunden\e[39m"
+            sudo veracrypt --mount $ContainerDir/$ContainerName $ContainerMP/$ContainerName -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
+            [[ `lsblk -o MOUNTPOINT | grep "$ContainerMP/$ContainerName"` ]] && echo -e "[\e[92m✓\e[39m] Container mounted!\e[39m"
         fi
         if [[ `pidof keepassxc` ]]
         then
-            echo -e "[\e[36mii\e[39m] KeePassXC bereits gestartet - F5 Aktualisieren!\e[39m"
-            exit
+            echo -e "[\e[36mii\e[39m] KeePassXC already started - Press F5 to Reload!\e[39m"
         else
             `keepassxc </dev/null &>/dev/null &`
             [[ `pidof keepassxc` ]]
             echo -e "[\e[92m✓\e[39m] KeePassXC gestartet\e[39m"
         fi
         clear 
-        echo -e $LGREEN"VC Restart"$RALL" - "$LRED"No Sync"$RALL"\n\n[\e[92m✓\e[39m] VC Restart erfolgreich\e[39m"
+        echo -e $LGREEN"VC Restart"$RALL" - "$LRED"No Sync"$RALL"\n\n[\e[92m✓\e[39m] VC Restart successfully\e[39m"
         MINUTEN=$(($SECONDS / 60))
         SEC=$(($SECONDS - $MINUTEN * 60))
         echo -e "[\e[91m$MINUTEN:$SEC\e[39m]"
         ;;
 
-        #restartns1)
-        #$0 stopns
-        #printf "\n"
-        #$0 startns
-        #;;
         *)
         echo "Incorrect input provided"
         show_usage
