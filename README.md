@@ -6,7 +6,7 @@ VC is a Script to a Mount VeracryptContainer and open a KeepassXc Database from 
 
 
 ```bash
-git clone https://github.com/azure1770/vc
+git clone https://github.com/azure1770/vc.git
 cd vc
 chmod +x install.sh
 ./install.sh
