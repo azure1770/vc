@@ -102,7 +102,7 @@ while [ ! -z "$1" ];do
 	            echo -e $LGREEN"\nServer | Upload (Sync)"$RALL
 	            echo -e "[\e[92m✓\e[39m] $sshhost has replied"
 	            sudo scp -P $sshport -i $idpath $ContainerDir/$ContainerName $sshuser@$sshhost:"$remoteDir"
-        	    ssh -q $sshuser@$sshhost -p $sshport -i $idpfad [[ -f "$remoteDir/$ContainerName" ]] && echo -e "\n[\e[92m✓\e[39m] Sync successfully" || echo -e "[\e[91m✗\e[39m] Sync Error"
+        	    ssh -q $sshuser@$sshhost -p $sshport -i $idpath [[ -f "$remoteDir/$ContainerName" ]] && echo -e "\n[\e[92m✓\e[39m] Sync successfully" || echo -e "[\e[91m✗\e[39m] Sync Error"
 	        else
 	            echo -e $LGREEN"\nServer | Upload (Sync)\n"$RALL
 	            echo -e "[\e[91m✗\e[39m] $sshhost didn't reply - NO SYNC"
