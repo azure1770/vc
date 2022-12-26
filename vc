@@ -45,7 +45,7 @@ while [ ! -z "$1" ];do
                 #DL Container
                 echo -e $LGREEN"\nLocal | Download (Sync)"$RALL
                 echo -e "[\e[92m✓\e[39m] $sshhost has replied"
-                sudo scp -P $sshport -i $idpfad $sshuser@$sshhost:"$remoteDir/$ContainerName" $ContainerDir
+                sudo scp -P $sshport -i $idpath $sshuser@$sshhost:"$remoteDir/$ContainerName" $ContainerDir
                 [[ -f "$ContainerDir/$ContainerName" ]] && echo -e "\n[\e[92m✓\e[39m] Sync successfully!" || echo -e "[\e[91m✗\e[39m] Sync Error"
             else
                 echo -e $LGREEN"Local | Download (Sync)\n"$RALL
