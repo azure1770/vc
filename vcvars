@@ -21,4 +21,4 @@ vcpw=`cat /bin/vcsec`
 #Veracrypt
 ContainerDir=/Path/to/your/Varacrypt/Containerfile - only Path no Filename!
 ContainerName=CONTAINERNAME
-ContainerMP=/Path/to/your/Mountpoint
+ContainerMP=/Path/to/your/Mountpoint <== Where your Container should be mounted.
