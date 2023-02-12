@@ -1,0 +1,214 @@
+#!/bin/bash
+source /bin/vcvars
+clear
+function show_usage() {
+    echo -e $LGREEN"\nVC Launcher"$RALL
+    printf "Usage: $0 [option]\n"
+    printf "\n"
+    printf "Options:\n"
+    printf " start     | Start VC & KeepassXC\n"
+    printf " stop      | Stop VC & KeepassXC\n"
+    printf " restart   | Restart VC & KeepassXC\n"
+    printf "\n"
+    printf " startns   | Start without Sync\n"
+    printf " stopns    | Stop without Sync\n"
+    printf " restartns | Restart without Sync\n"
+    printf "\n"
+    printf " backup    | Backup Container\n"
+    printf "\n"
+    printf " -h|help   | Display this Helpscreen\n"
+return 0
+}
+
+function check_start() {
+    #Check VC
+    if [[ `sudo lsblk -o MOUNTPOINT | grep $ContainerMP/$ContainerName` ]]
+        then
+            echo -e "\n[\e[36mii\e[39m] Container already mounted!!!"
+        fi
+    #Check if Keepass is already started
+    if [[ `pidof keepassxc` ]]
+        then
+            echo -e "[\e[36mii\e[39m] KeePassXC already started!!!\e[39m"
+            exit
+        fi
+}
+
+function check_stop() {
+    #Check Keepass is closed or not.
+    if [[ ! `sudo pidof keepassxc` ]]
+        then
+            echo -e "\n[\e[36mii\e[39m] KeePassXC already closed!\e[39m"
+        else
+            kill `pidof keepassxc`
+            [[ ! `pidof keepassxc` ]]
+            echo -e "\n[\e[92m✓\e[39m] KeePassXC terminated!\e[39m"
+        fi
+    #Check Veracrypt Container dismounted, if yes exit.
+    if [[ ! `lsblk -o MOUNTPOINT | grep "$ContainerMP/$ContainerName"` ]]
+        then
+            echo -e "[\e[36mii\e[39m] Container already dismounted!"
+            exit
+        else
+            veracrypt -d $ContainerMP/$ContainerName
+            if [[ ! `lsblk -o MOUNTPOINT | grep "$ContainerMP/$ContainerName"` ]]
+            then
+                echo -e "[\e[92m✓\e[39m] Volume Dismounted!\e[39m"
+            else
+                echo -e "[\e[91m✗\e[39m] Volume not dismounted! - Exit"
+                exit
+            fi
+        fi
+}
+
+function check_host_up() {
+    ping -c1 $sshhost -W0.1 1>/dev/null 2>/dev/null
+            SUCCESS=$?
+    if [ $SUCCESS -eq 0 ]
+    then
+    :
+    else
+        echo -e $LRED"\nAborted! $sshhost didn't reply - NO SYNC"$RALL
+        exit
+    fi 
+}
+
+function kp_run() {
+    `keepassxc </dev/null &>/dev/null &`
+    if [[ `pidof keepassxc` ]]
+        then
+            echo -e "[\e[92m✓\e[39m] KeePassXC started\e[39m"
+        fi
+}
+
+function vc_mount() {
+    sudo veracrypt --mount $ContainerDir/$ContainerName $ContainerMP/$ContainerName -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
+            [[ `lsblk -o MOUNTPOINT | grep $ContainerMP/$ContainerName` ]] && echo -e "\n[\e[92m✓\e[39m] Container mounted\e[39m"
+}
+
+function dl_cont() {
+            if [ $SUCCESS -eq 0 ]
+            then
+                #DL Container
+                echo -e $LGREEN"\nLocal | Download (Sync)"$RALL
+                echo -e "[\e[92m✓\e[39m] $sshhost has replied"
+                sudo scp -P $sshport -i $idpfad $sshuser@$sshhost:"$remoteDir/$ContainerName" $ContainerDir
+                [[ -f "$ContainerDir/$ContainerName" ]] && echo -e "\n[\e[92m✓\e[39m] Sync successfully" || echo -e "[\e[91m✗\e[39m] Sync Error"
+            else
+                echo -e $LGREEN"Local | Download (Sync)\n"$RALL
+                echo -e "[\e[91m✗\e[39m] $sshhost didn't reply - NO SYNC"
+            fi
+}
+
+function up_cont() {
+    if [ $SUCCESS -eq 0 ]
+	        then
+                #Upload
+	            echo -e $LGREEN"\nServer | Upload (Sync)"$RALL
+	            echo -e "[\e[92m✓\e[39m] $sshhost has replied"
+	            sudo scp -P $sshport -i $idpfad $ContainerDir/$ContainerName $sshuser@$sshhost:"$remoteDir"
+        	    ssh -q $sshuser@$sshhost -p $sshport -i $idpfad [[ -f "$remoteDir/$ContainerName" ]] && echo -e "\n[\e[92m✓\e[39m] Sync successfully" || echo -e "[\e[91m✗\e[39m] Sync Error"
+	        else
+	            echo -e $LGREEN"\nServer | Upload (Sync)\n"$RALL
+	            echo -e "[\e[91m✗\e[39m] $sshhost didn't reply - NO SYNC"
+	        fi
+}
+
+function backup() {
+    check_host_up
+    echo ""
+        ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ ! -d '$remoteDirbackup/$DATE' ]];
+        then 
+        mkdir '$remoteDirbackup/$DATE'
+        elif [[ -d '$remoteDirbackup/$DATE' ]];
+        then
+        count=$(ls -d '$remoteDirbackup/$DATE/*' | wc -l)
+        v="alt_$((count++))"
+        mkdir -p '$remoteDirbackup/$DATE/'$v
+        #mkdir -p '$remoteDirbackup/$DATE/'$((count++))
+        cp '$remoteDirbackup/$DATE/$ContainerName' '$remoteDirbackup/$DATE/'$v'/$ContainerName'
+        fi'
+        scp -P $sshport -i $idpfad $ContainerDir/$ContainerName $sshuser@$sshhost:"$remoteDirbackup/$DATE"        
+}
+
+function backup_check() {
+    ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ -f '$remoteDir/$ContainerName' ]] && [[ -f '$remoteDirbackup/$DATE/$ContainerName' ]]
+            then echo -e "\n[\e[92m✓\e[39m] FILES exists - Backup successfully"
+            else echo -e "[\e[91m✓\e[39m] FILES does not exist"
+            fi'
+}
+
+#Show Helpmenu if a argument is given
+#if [[ $# -gt 2 ]] || [[ $# -eq 0 ]];then
+if [[ $# -eq 0 ]]; then
+   show_usage
+   exit 1
+fi
+
+while [ ! -z "$1" ];do
+    case "$1" in
+        -h|help)
+        show_usage
+        ;;
+
+        start)
+        echo -e $LGREEN"VC Start"$RALL
+        check_start
+        check_host_up
+        dl_cont
+        vc_mount
+        kp_run
+        ;;
+
+        stop)
+        echo -e $LGREEN"VC Stop"$RALL
+        check_stop
+        check_host_up
+        up_cont
+        ;;
+
+        startns)
+        echo -e $LGREEN"VC Start"$RALL" - "$LRED"No Sync"$RALL
+        check_start
+        vc_mount
+        kp_run
+        ;;
+
+        stopns)
+        echo -e $LGREEN"VC Stop"$RALL" - "$LRED"No Sync"$RALL
+        check_stop
+        ;;
+
+        restart)
+        echo -e $LGREEN"VC Restart"$RALL
+        check_stop 1>/dev/null
+        check_host_up
+        up_cont 1>/dev/null
+        check_start 1>/dev/null
+        dl_cont 1>/dev/null
+        vc_mount 1>/dev/null
+        kp_run 1>/dev/null
+        echo -e "[\e[92m✓\e[39m] VC & KP restarted successfully"
+        ;;
+
+        restartns)
+        echo -e $LGREEN"VC Restart"$RALL" - "$LRED"No Sync"$RALL
+        check_stop 1>/dev/null
+        check_start 1>/dev/null
+        vc_mount 1>/dev/null
+        kp_run 1>/dev/null
+        echo -e "\n[\e[92m✓\e[39m] Restart successfull"
+        ;;
+        
+        backup)
+        echo -e $LGREEN"VC Backup"$RALL
+        backup
+        backup_check
+        ;;
+
+        *)
+        echo "Incorrect input provided. Try following comands..."
+        show_usage
+    esac
+shift
+done
