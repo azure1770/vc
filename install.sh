@@ -47,6 +47,7 @@ esac
 done
 
 sudo nano /bin/vcvars
+sudo nano /bin/vcsec
 
 clear
 echo ""
