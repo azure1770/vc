@@ -28,3 +28,7 @@ RALL='\e[0;39;49m' #Remove all Colors u. Effecte
 #Date
 DATE=$(date +"%d.%m.%Y")
 vcpw=`cat /bin/vcsec`
+TICK="[${LGREEN}✓${RALL}]"
+CROSS="[${LRED}✗${RALL}]"
+INFO=" [${CYAN}i${RALL}]"
+OVER="\\r\\033[K" 
