@@ -1,4 +1,23 @@
-#!/bin/bash
+*** Change me to your needs... ***
+### CHANGE START ####
+#SSH
+sshuser=CHANGE_ME_USER
+sshhost=CHANGE_ME_IP/Domain
+idpath=CHANGE_ME_/Path/to/your/ssh/key/file
+sshport=22
+remoteDir="CHANGE_ME_/Remote/DIR/FOR/VeracryptContainer"
+remoteDirbackup="CHANGE_ME_/Remote/DIR/FOR/VeracryptContainer"
+
+#Veracrypt
+ContainerDir=CHANGE_ME_/Path/to/your/Varacrypt/Containerfile - only Path no Filename!
+ContainerName=CHANGE_ME_CONTAINERNAME
+ContainerMP=CHANGE_ME_/Path/to/your/Mountpoint <== Where your Container should be mounted.
+### CHANGE STOP! ###
+
+
+
+
+*** Dont change me ***
 #Variablen
 #Colors
 RED='\e[31m'
@@ -8,17 +27,4 @@ CYAN='\e[36m'
 RALL='\e[0;39;49m' #Remove all Colors u. Effecte
 #Date
 DATE=$(date +"%d.%m.%Y")
-
-#SSH
-sshuser=USER
-sshhost=IP/Domain
-idpath=/Path/to/your/ssh/key/file
-sshport=22
-remoteDir="/Remote/DIR/FOR/VeracryptContainer"
-remoteDirbackup="/Remote/DIR/FOR/VeracryptContainer"
 vcpw=`cat /bin/vcsec`
-
-#Veracrypt
-ContainerDir=/Path/to/your/Varacrypt/Containerfile - only Path no Filename!
-ContainerName=CONTAINERNAME
-ContainerMP=/Path/to/your/Mountpoint <== Where your Container should be mounted.
