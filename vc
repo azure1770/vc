@@ -82,8 +82,8 @@ function kp_run() {
 }
 
 function vc_mount() {
-    sudo veracrypt --mount $ContainerDir/$ContainerName $ContainerMP/$ContainerName -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
-            [[ `lsblk -o MOUNTPOINT | grep $ContainerMP/$ContainerName` ]] && echo -e "\n[\e[92m✓\e[39m] Container mounted\e[39m"
+    sudo veracrypt --mount $ContainerDir/$ContainerName $ContainerMP -p $vcpw --pim 0 -k '' --protect-hidden 'no' >/dev/null
+            [[ `lsblk -o MOUNTPOINT | grep $ContainerMP` ]] && echo -e "\n[\e[92m✓\e[39m] Container mounted\e[39m"
 }
 
 function dl_cont() {
