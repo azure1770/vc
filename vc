@@ -92,7 +92,7 @@ function dl_cont() {
                 #DL Container
                 echo -e $LGREEN"\nLocal | Download (Sync)"$RALL
                 echo -e "[\e[92m✓\e[39m] $sshhost has replied"
-                sudo scp -P $sshport -i $idpfad $sshuser@$sshhost:"$remoteDir/$ContainerName" $ContainerDir
+                sudo scp -P $sshport -i $idpath $sshuser@$sshhost:"$remoteDir/$ContainerName" $ContainerDir
                 [[ -f "$ContainerDir/$ContainerName" ]] && echo -e "\n[\e[92m✓\e[39m] Sync successfully" || echo -e "[\e[91m✗\e[39m] Sync Error"
             else
                 echo -e $LGREEN"Local | Download (Sync)\n"$RALL
@@ -106,7 +106,7 @@ function up_cont() {
                 #Upload
 	            echo -e $LGREEN"\nServer | Upload (Sync)"$RALL
 	            echo -e "[\e[92m✓\e[39m] $sshhost has replied"
-	            sudo scp -P $sshport -i $idpfad $ContainerDir/$ContainerName $sshuser@$sshhost:"$remoteDir"
+	            sudo scp -P $sshport -i $idpath $ContainerDir/$ContainerName $sshuser@$sshhost:"$remoteDir"
         	    ssh -q $sshuser@$sshhost -p $sshport -i $idpfad [[ -f "$remoteDir/$ContainerName" ]] && echo -e "\n[\e[92m✓\e[39m] Sync successfully" || echo -e "[\e[91m✗\e[39m] Sync Error"
 	        else
 	            echo -e $LGREEN"\nServer | Upload (Sync)\n"$RALL
@@ -117,7 +117,7 @@ function up_cont() {
 function backup() {
     check_host_up
     echo ""
-        ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ ! -d '$remoteDirbackup/$DATE' ]];
+        ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpath 'if [[ ! -d '$remoteDirbackup/$DATE' ]];
         then 
         mkdir '$remoteDirbackup/$DATE'
         elif [[ -d '$remoteDirbackup/$DATE' ]];
@@ -128,11 +128,11 @@ function backup() {
         #mkdir -p '$remoteDirbackup/$DATE/'$((count++))
         cp '$remoteDirbackup/$DATE/$ContainerName' '$remoteDirbackup/$DATE/'$v'/$ContainerName'
         fi'
-        scp -P $sshport -i $idpfad $ContainerDir/$ContainerName $sshuser@$sshhost:"$remoteDirbackup/$DATE"        
+        scp -P $sshport -i $idpath $ContainerDir/$ContainerName $sshuser@$sshhost:"$remoteDirbackup/$DATE"        
 }
 
 function backup_check() {
-    ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpfad 'if [[ -f '$remoteDir/$ContainerName' ]] && [[ -f '$remoteDirbackup/$DATE/$ContainerName' ]]
+    ssh -t -t -q $sshuser@$sshhost -p $sshport -i $idpath 'if [[ -f '$remoteDir/$ContainerName' ]] && [[ -f '$remoteDirbackup/$DATE/$ContainerName' ]]
             then echo -e "\n[\e[92m✓\e[39m] FILES exists - Backup successfully"
             else echo -e "[\e[91m✓\e[39m] FILES does not exist"
             fi'
