@@ -84,9 +84,9 @@ else
     sudo nano /bin/vcvars
     sudo nano /bin/vcsec
     mkmp=$(cat /bin/vcvars | grep "ContainerMP" | sed 's/ContainerMP\=//')
-    mkdir -p $mkmp
+    sudo mkdir -p $mkmp
     mkmp=$(cat /bin/vcvars | grep "ContainerDir" | sed 's/ContainerDir\=//')
-    mkdir -p $mkcd
+    sudo mkdir -p $mkcd
     clear
     first_container
 fi
